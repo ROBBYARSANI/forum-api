@@ -1,0 +1,73 @@
+const NewReply = require('../../../Domains/replies/entities/NewReply');
+const AddedReply = require('../../../Domains/replies/entities/AddedReply');
+const ThreadRepository = require('../../../Domains/threads/ThreadRepository');
+const CommentRepository = require('../../../Domains/comments/CommentRepository');
+const ReplyRepository = require('../../../Domains/replies/ReplyRepository');
+const AddReplyUseCase = require('../AddReplyUseCase');
+
+describe('AddReplyUseCase', () => {
+  /**
+   * Menguji apakah use case mampu mengorkestrasikan langkah demi langkah dengan benar.
+   */
+  it('should orchestrating the add reply action correctly', async () => {
+    // Arrange
+    const useCasePayload = {
+      threadId: 'thread-123',
+      commentId: 'comment-123',
+      content: 'isi reply',
+      owner: 'user-123',
+    };
+
+    const mockReturnReply = {
+      id: 'reply-456',
+      content: useCasePayload.content,
+      owner: useCasePayload.owner,
+    };
+
+    /** creating dependency of use case */
+    const mockThreadRepository = new ThreadRepository();
+    const mockCommentRepository = new CommentRepository();
+    const mockReplyRepository = new ReplyRepository();
+
+    /** mocking needed function */
+    mockThreadRepository.verifyThreadExist = jest
+      .fn()
+      .mockImplementation(() => Promise.resolve());
+
+    mockCommentRepository.verifyCommentExist = jest
+      .fn()
+      .mockImplementation(() => Promise.resolve());
+
+    mockReplyRepository.addReply = jest
+      .fn()
+      .mockImplementation(() => Promise.resolve(mockReturnReply));
+
+    /** creating use case instance */
+    const addReplyUseCase = new AddReplyUseCase({
+      threadRepository: mockThreadRepository,
+      commentRepository: mockCommentRepository,
+      replyRepository: mockReplyRepository,
+    });
+
+    // Action
+    const addedReply = await addReplyUseCase.execute(useCasePayload);
+
+    // Assert
+    expect(mockThreadRepository.verifyThreadExist).toBeCalledWith(
+      useCasePayload.threadId,
+    );
+    expect(mockCommentRepository.verifyCommentExist).toBeCalledWith(
+      useCasePayload.commentId,
+    );
+    expect(mockReplyRepository.addReply).toBeCalledWith(new NewReply({
+      commentId: useCasePayload.commentId,
+      content: useCasePayload.content,
+      owner: useCasePayload.owner,
+    }));
+
+    expect(addedReply).toBeInstanceOf(AddedReply);
+    expect(addedReply.id).toEqual(mockReturnReply.id);
+    expect(addedReply.content).toEqual(mockReturnReply.content);
+    expect(addedReply.owner).toEqual(mockReturnReply.owner);
+  });
+});
