@@ -104,12 +104,12 @@ jobs:
           npm install
         fi
 
-    - name: Run database migrations
-      continue-on-error: true
+    - name: Note on database migrations
       run: |
-        export DATABASE_URL="postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }}"
-        echo "DATABASE_URL is set: ${#DATABASE_URL}"
-        npm run migrate up
+        echo "Database migrations are skipped in this step (cannot connect from GitHub Actions)."
+        echo "To run migrations on Railway:"
+        echo "  1. railway run npm run migrate up"
+        echo "Or manually via Railway dashboard PostgreSQL console."
 
     - name: Install Railway CLI
       run: npm install -g @railway/cli
