@@ -7,10 +7,7 @@ on:
 jobs:
   demo-fail:
     name: Demo failing job (runs only when PR labeled 'demo-fail')
-    # Run this job only when the pull request contains the label 'demo-fail'
-    if: contains(join(github.event.pull_request.labels.*.name, ','), 'demo-fail')
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -20,8 +17,15 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Intentionally fail (demo)
+      - name: Check PR labels and conditionally fail
+        env:
+          PR_LABELS: "${{ join(github.event.pull_request.labels.*.name, ',') }}"
         run: |
-          echo "This job is a deliberate failing CI demo to satisfy the 'one failing scenario' requirement."
-          echo "This job runs only if the PR has the label 'demo-fail'."
-          exit 1
+          echo "PR labels: $PR_LABELS"
+          if echo "$PR_LABELS" | grep -wq "demo-fail"; then
+            echo "Label 'demo-fail' present — intentionally failing this job."
+            exit 1
+          else
+            echo "Label 'demo-fail' not present — ending job successfully."
+            exit 0
+          fi
