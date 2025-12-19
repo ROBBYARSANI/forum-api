@@ -44,14 +44,6 @@ container.register([
     Class: nanoid,
   },
   {
-    key: 'bcrypt',
-    Class: bcrypt,
-  },
-  {
-    key: 'jwt',
-    Class: Jwt,
-  },
-  {
     key: 'UserRepository',
     Class: UserRepositoryPostgres,
     parameter: {
