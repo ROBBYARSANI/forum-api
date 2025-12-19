@@ -1,7 +1,6 @@
-const path = require('path');
-const BaseRepository = require(path.join(process.cwd(), 'src', 'Core', 'BaseRepository'));
+const LikeRepository = require('../../Domains/likes/LikeRepository');
 
-class LikeRepositoryPostgres extends BaseRepository {
+class LikeRepositoryPostgres extends LikeRepository {
   constructor(pool, idGenerator) {
     super('likes', pool);
     this.idGenerator = idGenerator;
