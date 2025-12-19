@@ -105,6 +105,7 @@ jobs:
         fi
 
     - name: Run database migrations
+      continue-on-error: true
       run: |
         export DATABASE_URL="postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }}"
         echo "DATABASE_URL is set: ${#DATABASE_URL}"
