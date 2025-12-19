@@ -115,10 +115,6 @@ jobs:
       run: npm install -g @railway/cli
 
     - name: Deploy to Railway
-      run: |
-        # Get the service name (app name) from Railway project
-        SERVICE_NAME=$(railway service ls 2>/dev/null | grep -v "^db\|^postgres\|^database" | head -1 || echo "forum-api")
-        echo "Deploying service: $SERVICE_NAME"
-        railway up --service "$SERVICE_NAME" --detach
+      run: railway up --force --detach
       env:
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
