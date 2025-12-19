@@ -116,9 +116,16 @@ jobs:
 
     - name: Deploy to Railway
       run: |
-        echo "Listing available Railway services..."
-        railway service list || railway services || echo "Could not list services"
-        echo "Deploying with --service web (primary app service)..."
-        railway up --service web --detach
+        echo "Deploy step using RAILWAY_SERVICE secret if available."
+        if [ -n "$RAILWAY_SERVICE" ]; then
+          echo "Deploying service: $RAILWAY_SERVICE"
+          railway up --service "$RAILWAY_SERVICE" --detach
+        else
+          echo "ERROR: RAILWAY_SERVICE secret is not set."
+          echo "Please set repository secret 'RAILWAY_SERVICE' to the app service name (e.g. 'web')."
+          echo "You can discover the service name locally with: railway service ls"
+          exit 1
+        fi
       env:
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
