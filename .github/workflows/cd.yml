@@ -1,12 +1,23 @@
-name: CD
+name: Continuous Deployment
 
 on:
   push:
     branches: [ main, master ]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
     - uses: actions/checkout@v3
@@ -14,19 +25,69 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '20'
+        node-version: '16'
         cache: 'npm'
 
     - name: Install dependencies
       run: npm ci
 
-    - name: Run tests
-      run: npm test
+    - name: Run linter
+      run: npm run lint
+
+    - name: Run unit tests
+      run: npm test -- --testPathPattern=unit --coverage=false
       env:
         NODE_ENV: test
 
-    - name: Build and push to Railway
-      uses: railwayapp/cli@v1
+    - name: Run integration tests
+      run: npm test -- --testPathPattern=integration
+      env:
+        NODE_ENV: test
+        PGHOST: postgres
+        PGPORT: 5432
+        PGUSER: postgres
+        PGPASSWORD: postgres
+        PGDATABASE: postgres
+
+    - name: Run functional tests
+      run: npm test -- --testPathPattern=functional
+      env:
+        NODE_ENV: test
+        PGHOST: postgres
+        PGPORT: 5432
+        PGUSER: postgres
+        PGPASSWORD: postgres
+        PGDATABASE: postgres
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
       with:
-        railway_token: ${{ secrets.RAILWAY_TOKEN }}
-        command: up --detach
+        node-version: '16'
+ 
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run database migrations
+      run: npm run migrate
+      env:
+        PGHOST: ${{ secrets.PGHOST }}
+        PGPORT: ${{ secrets.PGPORT }}
+        PGUSER: ${{ secrets.PGUSER }}
+        PGPASSWORD: ${{ secrets.PGPASSWORD }}
+        PGDATABASE: ${{ secrets.PGDATABASE }}
+
+    - name: Install Railway CLI
+      run: npm install -g @railway/cli
+
+    - name: Deploy to Railway
+      run: railway up --detach
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
