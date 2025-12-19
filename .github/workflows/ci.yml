@@ -36,7 +36,16 @@ jobs:
           ${{ runner.os }}-node-
 
     - name: Install dependencies
-      run: npm ci
+      run: |
+        # Use `npm ci` when a lockfile exists for reproducible installs,
+        # otherwise fall back to `npm install` so the job doesn't fail.
+        if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+          echo "Lockfile found - running 'npm ci'"
+          npm ci
+        else
+          echo "No lockfile found - running 'npm install'"
+          npm install
+        fi
 
     - name: Run linter
       run: npm run lint
