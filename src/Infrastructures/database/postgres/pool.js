@@ -4,25 +4,25 @@ const config = require('../../../Commons/config');
 const createPool = () => {
   // Railway memberikan DATABASE_URL, jika tidak ada gunakan config lokal
   const connectionString = process.env.DATABASE_URL;
-  
-  const poolConfig = connectionString 
+
+  const poolConfig = connectionString
     ? {
-        connectionString,
-        // Railway membutuhkan SSL di production
-        ssl: process.env.NODE_ENV === 'production' 
-          ? { 
-              rejectUnauthorized: false,
-              sslmode: 'require'
-            } 
-          : false
-      }
+      connectionString,
+      // Railway membutuhkan SSL di production
+      ssl: process.env.NODE_ENV === 'production'
+        ? {
+          rejectUnauthorized: false,
+          sslmode: 'require',
+        }
+        : false,
+    }
     : {
-        host: config.database.host,
-        port: config.database.port,
-        database: config.database.name,
-        user: config.database.username,
-        password: config.database.password,
-      };
+      host: config.database.host,
+      port: config.database.port,
+      database: config.database.name,
+      user: config.database.username,
+      password: config.database.password,
+    };
 
   const pool = new Pool(poolConfig);
 

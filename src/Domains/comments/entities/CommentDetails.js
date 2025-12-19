@@ -17,6 +17,7 @@ class CommentDetails {
   _verifyPayload({
     id, username, date, content, replies, is_deleted: isDeleted, likeCount,
   }) {
+    // eslint-disable-next-line max-len
     if (!id || !username || !date || !content || !replies || isDeleted === undefined || likeCount === undefined) {
       throw new Error('COMMENT_DETAILS.NOT_CONTAIN_NEEDED_PROPERTY');
     }

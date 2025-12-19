@@ -1,6 +1,64 @@
-node_modules
-coverage
-.env
-forum-api-webserver.pem
+# Node modules and dependency lock
+node_modules/
 package-lock.json
-config/database/test.json
+
+# Coverage
+coverage/
+
+# Environment files (do NOT commit secrets)
+.env
+.env.*
+
+# SSL / PEM files
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS files
+.DS_Store
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Build output
+dist/
+build/
+out/
+
+# Temporary
+.cache/
+.parcel-cache/
+tmp/
+
+# Test / coverage outputs
+.nyc_output/
+coverage/
+
+# Jest cache
+jest-cache/
+
+# Next.js and other frameworks
+.next/
+.turbo/
+
+# Serverless
+.serverless/
+
+# Misc
+.eslintcache
+.history
+.env.local
+.env.test
+.env.production
+
+# Database config for local tests
+config/database/*.json

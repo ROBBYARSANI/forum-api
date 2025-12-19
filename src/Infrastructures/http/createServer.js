@@ -16,13 +16,34 @@ const createServer = async (container) => {
     port: process.env.PORT,
   });
 
- 
+  // Simple in-memory rate limiter for /threads endpoints
+  // Limit: 90 requests per minute per IP
+  const threadsRateLimit = new Map();
+  // Clear counters every minute
+  setInterval(() => threadsRateLimit.clear(), 60 * 1000);
+
+  server.ext('onPreAuth', (request, h) => {
+    const { path } = request;
+    if (!path.startsWith('/threads')) {
+      return h.continue;
+    }
+
+    const ip = request.info.remoteAddress || request.headers['x-forwarded-for'] || 'unknown';
+    const current = threadsRateLimit.get(ip) || 0;
+    if (current >= 90) {
+      const response = h.response({ status: 'fail', message: 'Too Many Requests' });
+      response.code(429);
+      return response.takeover();
+    }
+    threadsRateLimit.set(ip, current + 1);
+    return h.continue;
+  });
+
   await server.register([
     {
       plugin: Jwt,
     },
   ]);
-
 
   server.auth.strategy('forum_api_jwt', 'jwt', {
     keys: process.env.ACCESS_TOKEN_KEY,

@@ -3,7 +3,7 @@ class HealthHandler {
     this.getHealthHandler = this.getHealthHandler.bind(this);
   }
 
-  async getHealthHandler(request, h) {
+  async getHealthHandler() {
     return {
       status: 'success',
       message: 'Server is healthy',

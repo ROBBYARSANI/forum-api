@@ -1,0 +1,27 @@
+name: Continuous Integration - Demo Failure
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  demo-fail:
+    name: Demo failing job (runs only when PR labeled 'demo-fail')
+    # Run this job only when the pull request contains the label 'demo-fail'
+    if: contains(join(github.event.pull_request.labels.*.name, ','), 'demo-fail')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Intentionally fail (demo)
+        run: |
+          echo "This job is a deliberate failing CI demo to satisfy the 'one failing scenario' requirement."
+          echo "This job runs only if the PR has the label 'demo-fail'."
+          exit 1
