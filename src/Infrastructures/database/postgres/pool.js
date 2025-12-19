@@ -47,5 +47,3 @@ class DatabasePool {
 }
 
 module.exports = DatabasePool;
-
-
