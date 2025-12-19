@@ -119,7 +119,7 @@ jobs:
         echo "Deploy step using RAILWAY_SERVICE secret if available."
         if [ -n "$RAILWAY_SERVICE" ]; then
           echo "Deploying service: $RAILWAY_SERVICE"
-          railway up --service "$RAILWAY_SERVICE" --detach
+          railway up --service "$RAILWAY_SERVICE"
         else
           echo "ERROR: RAILWAY_SERVICE secret is not set."
           echo "Please set repository secret 'RAILWAY_SERVICE' to the app service name (e.g. 'web')."
