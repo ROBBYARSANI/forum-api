@@ -1,4 +1,5 @@
-const BaseRepository = require('../../Core/BaseRepository');
+const path = require('path');
+const BaseRepository = require(path.join(process.cwd(), 'src', 'Core', 'BaseRepository'));
 
 class LikeRepositoryPostgres extends BaseRepository {
   constructor(pool, idGenerator) {
