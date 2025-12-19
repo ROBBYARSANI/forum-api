@@ -115,6 +115,10 @@ jobs:
       run: npm install -g @railway/cli
 
     - name: Deploy to Railway
-      run: railway up --detach
+      run: |
+        echo "Listing available Railway services..."
+        railway service list || railway services || echo "Could not list services"
+        echo "Deploying with --service web (primary app service)..."
+        railway up --service web --detach
       env:
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
