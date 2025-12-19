@@ -105,9 +105,10 @@ jobs:
         fi
 
     - name: Run database migrations
-      run: npm run migrate up
-      env:
-        DATABASE_URL: postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }}
+      run: |
+        export DATABASE_URL="postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@${{ secrets.PGHOST }}:${{ secrets.PGPORT }}/${{ secrets.PGDATABASE }}"
+        echo "DATABASE_URL is set: ${#DATABASE_URL}"
+        npm run migrate up
 
     - name: Install Railway CLI
       run: npm install -g @railway/cli
