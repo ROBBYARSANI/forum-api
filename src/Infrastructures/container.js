@@ -1,186 +1,367 @@
-const pool = require('../../database/postgres/pool');
+const { createContainer } = require('instances-container');
 
-const LikeRepositoryPostgres = require('../LikeRepositoryPostgres');
+// external agency
+const { nanoid } = require('nanoid');
+const bcrypt = require('bcrypt');
+const Jwt = require('@hapi/jwt');
+const pool = require('./database/postgres/pool');
 
-const UsersTableTestHelper = require('../../../../tests/UsersTableTestHelper');
-const ThreadsTableTestHelper = require('../../../../tests/ThreadsTableTestHelper');
-const CommentsTableTestHelper = require('../../../../tests/CommentsTableTestHelper');
-const LikesTableTestHelper = require('../../../../tests/LikesTableTestHelper');
+// service (repository, helper, cache, etc)
+const UserRepositoryPostgres = require('./repository/UserRepositoryPostgres');
+const AuthenticationRepositoryPostgres = require('./repository/AuthenticationRepositoryPostgres');
+const ThreadRepositoryPostgres = require('./repository/ThreadRepositoryPostgres');
+const CommentRepositoryPostgres = require('./repository/CommentRepositoryPostgres');
+const ReplyRepositoryPostgres = require('./repository/ReplyRepositoryPostgres');
+const LikeRepositoryPostgres = require('./repository/LikeRepositoryPostgres');
 
-describe('LikeRepositoryPostgres', () => {
-  const user1 = {
-    id: 'user-123',
-    username: 'username1',
-    password: 'secret',
-    fullname: 'full name 1',
-  };
+const BcryptPasswordHash = require('./security/BcryptPasswordHash');
+const JwtTokenManager = require('./security/JwtTokenManager');
 
-  const user2 = {
-    id: 'user-321',
-    username: 'username2',
-    password: 'secret',
-    fullname: 'full name 2',
-  };
+// use case
+const AddUserUseCase = require('../Applications/use_case/AddUserUseCase');
+const LoginUserUseCase = require('../Applications/use_case/LoginUserUseCase');
+const LogoutUserUseCase = require('../Applications/use_case/LogoutUserUseCase');
+const RefreshAuthenticationUseCase = require('../Applications/use_case/RefreshAuthenticationUseCase');
+const AddThreadUseCase = require('../Applications/use_case/AddThreadUseCase');
+const GetThreadUseCase = require('../Applications/use_case/GetThreadUseCase');
+const AddCommentUseCase = require('../Applications/use_case/AddCommentUseCase');
+const DeleteCommentUseCase = require('../Applications/use_case/DeleteCommentUseCase');
+const AddReplyUseCase = require('../Applications/use_case/AddReplyUseCase');
+const DeleteReplyUseCase = require('../Applications/use_case/DeleteReplyUseCase');
+const LikeUnlikeUseCase = require('../Applications/use_case/LikeUnlikeUseCase');
 
-  const thread = {
-    id: 'thread-123',
-    title: 'judul',
-    body: 'isi',
-    owner: 'user-123',
-  };
+// creating container
+const container = createContainer();
 
-  const comment = {
-    id: 'comment-123',
-    thread_id: 'thread-123',
-    content: 'isi komen',
-    owner: 'user-123',
-  };
+// registering services and repository
+container.register([
+  {
+    key: 'pool',
+    Class: pool,
+  },
+  {
+    key: 'nanoid',
+    Class: nanoid,
+  },
+  {
+    key: 'bcrypt',
+    Class: bcrypt,
+  },
+  {
+    key: 'jwt',
+    Class: Jwt,
+  },
+  {
+    key: 'UserRepository',
+    Class: UserRepositoryPostgres,
+    parameter: {
+      dependencies: [
+        {
+          concrete: pool,
+        },
+      ],
+    },
+  },
+  {
+    key: 'AuthenticationRepository',
+    Class: AuthenticationRepositoryPostgres,
+    parameter: {
+      dependencies: [
+        {
+          concrete: pool,
+        },
+      ],
+    },
+  },
+  {
+    key: 'ThreadRepository',
+    Class: ThreadRepositoryPostgres,
+    parameter: {
+      dependencies: [
+        {
+          concrete: pool,
+        },
+        {
+          concrete: nanoid,
+        },
+      ],
+    },
+  },
+  {
+    key: 'CommentRepository',
+    Class: CommentRepositoryPostgres,
+    parameter: {
+      dependencies: [
+        {
+          concrete: pool,
+        },
+        {
+          concrete: nanoid,
+        },
+      ],
+    },
+  },
+  {
+    key: 'ReplyRepository',
+    Class: ReplyRepositoryPostgres,
+    parameter: {
+      dependencies: [
+        {
+          concrete: pool,
+        },
+        {
+          concrete: nanoid,
+        },
+      ],
+    },
+  },
+  {
+    key: 'LikeRepository',
+    Class: LikeRepositoryPostgres,
+    parameter: {
+      dependencies: [
+        {
+          concrete: pool,
+        },
+        {
+          concrete: nanoid,
+        },
+      ],
+    },
+  },
+  {
+    key: 'PasswordHash',
+    Class: BcryptPasswordHash,
+    parameter: {
+      dependencies: [
+        {
+          concrete: bcrypt,
+        },
+      ],
+    },
+  },
+  {
+    key: 'AuthenticationTokenManager',
+    Class: JwtTokenManager,
+    parameter: {
+      dependencies: [
+        {
+          concrete: Jwt,
+        },
+      ],
+    },
+  },
+]);
 
-  beforeAll(async () => {
-    await UsersTableTestHelper.addUser(user1);
-    await UsersTableTestHelper.addUser(user2);
+// registering use cases
+container.register([
+  {
+    key: AddUserUseCase.name,
+    Class: AddUserUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'userRepository',
+          internal: 'UserRepository',
+        },
+        {
+          name: 'passwordHash',
+          internal: 'PasswordHash',
+        },
+      ],
+    },
+  },
+  {
+    key: LoginUserUseCase.name,
+    Class: LoginUserUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'userRepository',
+          internal: 'UserRepository',
+        },
+        {
+          name: 'authenticationRepository',
+          internal: 'AuthenticationRepository',
+        },
+        {
+          name: 'authenticationTokenManager',
+          internal: 'AuthenticationTokenManager',
+        },
+        {
+          name: 'passwordHash',
+          internal: 'PasswordHash',
+        },
+      ],
+    },
+  },
+  {
+    key: LogoutUserUseCase.name,
+    Class: LogoutUserUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'authenticationRepository',
+          internal: 'AuthenticationRepository',
+        },
+      ],
+    },
+  },
+  {
+    key: RefreshAuthenticationUseCase.name,
+    Class: RefreshAuthenticationUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'authenticationRepository',
+          internal: 'AuthenticationRepository',
+        },
+        {
+          name: 'authenticationTokenManager',
+          internal: 'AuthenticationTokenManager',
+        },
+      ],
+    },
+  },
+  {
+    key: AddThreadUseCase.name,
+    Class: AddThreadUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'threadRepository',
+          internal: 'ThreadRepository',
+        },
+      ],
+    },
+  },
+  {
+    key: GetThreadUseCase.name,
+    Class: GetThreadUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'threadRepository',
+          internal: 'ThreadRepository',
+        },
+        {
+          name: 'commentRepository',
+          internal: 'CommentRepository',
+        },
+        {
+          name: 'replyRepository',
+          internal: 'ReplyRepository',
+        },
+        {
+          name: 'likeRepository',
+          internal: 'LikeRepository',
+        },
+      ],
+    },
+  },
+  {
+    key: AddCommentUseCase.name,
+    Class: AddCommentUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'threadRepository',
+          internal: 'ThreadRepository',
+        },
+        {
+          name: 'commentRepository',
+          internal: 'CommentRepository',
+        },
+      ],
+    },
+  },
+  {
+    key: DeleteCommentUseCase.name,
+    Class: DeleteCommentUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'threadRepository',
+          internal: 'ThreadRepository',
+        },
+        {
+          name: 'commentRepository',
+          internal: 'CommentRepository',
+        },
+      ],
+    },
+  },
+  {
+    key: AddReplyUseCase.name,
+    Class: AddReplyUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'threadRepository',
+          internal: 'ThreadRepository',
+        },
+        {
+          name: 'commentRepository',
+          internal: 'CommentRepository',
+        },
+        {
+          name: 'replyRepository',
+          internal: 'ReplyRepository',
+        },
+      ],
+    },
+  },
+  {
+    key: DeleteReplyUseCase.name,
+    Class: DeleteReplyUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'threadRepository',
+          internal: 'ThreadRepository',
+        },
+        {
+          name: 'commentRepository',
+          internal: 'CommentRepository',
+        },
+        {
+          name: 'replyRepository',
+          internal: 'ReplyRepository',
+        },
+      ],
+    },
+  },
+  {
+    key: LikeUnlikeUseCase.name,
+    Class: LikeUnlikeUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'threadRepository',
+          internal: 'ThreadRepository',
+        },
+        {
+          name: 'commentRepository',
+          internal: 'CommentRepository',
+        },
+        {
+          name: 'likeRepository',
+          internal: 'LikeRepository',
+        },
+      ],
+    },
+  },
+]);
 
-    await ThreadsTableTestHelper.addThread(thread);
-
-    await CommentsTableTestHelper.addComment(comment);
-  });
-
-  afterEach(async () => {
-    await LikesTableTestHelper.cleanTable();
-  });
-
-  afterAll(async () => {
-    await CommentsTableTestHelper.cleanTable();
-    await ThreadsTableTestHelper.cleanTable();
-    await UsersTableTestHelper.cleanTable();
-    await pool.end();
-  });
-
-  describe('checkIfUserHasLikedComment function', () => {
-    it('should return true if user has liked the comment', async () => {
-      // Arrange
-      await LikesTableTestHelper.addLike({
-        id: 'like-123',
-        commentId: comment.id,
-        userId: user1.id,
-        date: new Date(),
-      });
-
-      const fakeIdGenerator = () => '123'; // stub!
-      const likeRepositoryPostgres = new LikeRepositoryPostgres(
-        pool,
-        fakeIdGenerator,
-      );
-
-      // Action
-      const result = await likeRepositoryPostgres.checkIfUserHasLikedComment({
-        commentId: comment.id,
-        userId: user1.id,
-      });
-
-      // Assert
-      expect(result).toBe(true);
-    });
-
-    it('should return false if user has not liked the comment', async () => {
-      // Arrange
-      const fakeIdGenerator = () => '123'; // stub!
-      const likeRepositoryPostgres = new LikeRepositoryPostgres(
-        pool,
-        fakeIdGenerator,
-      );
-
-      // Action
-      const result = await likeRepositoryPostgres.checkIfUserHasLikedComment({
-        commentId: comment.id,
-        userId: user1.id,
-      });
-
-      // Assert
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('likeComment function', () => {
-    it('should persist new like correctly', async () => {
-      // Arrange
-      const likePayload = {
-        commentId: comment.id,
-        userId: user1.id,
-      };
-
-      const fakeIdGenerator = () => '123'; // stub!
-      const likeRepositoryPostgres = new LikeRepositoryPostgres(
-        pool,
-        fakeIdGenerator,
-      );
-
-      // Action
-      await likeRepositoryPostgres.likeComment(likePayload);
-
-      // Assert
-      const like = await LikesTableTestHelper.findLikeById('like-123');
-      expect(like).toHaveLength(1);
-    });
-  });
-
-  describe('unlikeComment function', () => {
-    it('should delete like correctly', async () => {
-      // Arrange
-      const likePayload = {
-        id: 'like-123',
-        commentId: comment.id,
-        userId: user1.id,
-        date: new Date(),
-      };
-
-      await LikesTableTestHelper.addLike(likePayload);
-
-      const fakeIdGenerator = () => '123'; // stub!
-      const likeRepositoryPostgres = new LikeRepositoryPostgres(
-        pool,
-        fakeIdGenerator,
-      );
-
-      // Action
-      await likeRepositoryPostgres.unlikeComment(likePayload);
-
-      // Assert
-      const like = await LikesTableTestHelper.findLikeById(likePayload.id);
-      expect(like).toHaveLength(0);
-    });
-  });
-
-  describe('countCommentLikes function', () => {
-    it('should count likes correctly', async () => {
-      const likePayload = {
-        id: 'like-123',
-        commentId: comment.id,
-        userId: user1.id,
-        date: new Date(),
-      };
-
-      const likePayload2 = {
-        id: 'like-1234',
-        commentId: comment.id,
-        userId: user2.id,
-        date: new Date(),
-      };
-
-      await LikesTableTestHelper.addLike(likePayload);
-      await LikesTableTestHelper.addLike(likePayload2);
-
-      const fakeIdGenerator = () => '123'; // stub!
-      const likeRepositoryPostgres = new LikeRepositoryPostgres(
-        pool,
-        fakeIdGenerator,
-      );
-
-      // Action
-      const count = await likeRepositoryPostgres.countCommentLikes(comment.id);
-
-      // Assert
-      expect(count).toBe(2);
-    });
-  });
-});
+module.exports = container;

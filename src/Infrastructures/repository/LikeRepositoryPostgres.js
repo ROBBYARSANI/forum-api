@@ -1,109 +1,51 @@
-const Hapi = require('@hapi/hapi');
-const Jwt = require('@hapi/jwt');
-const ClientError = require('../../Commons/exceptions/ClientError');
-const DomainErrorTranslator = require('../../Commons/exceptions/DomainErrorTranslator');
-const users = require('../../Interfaces/http/api/users');
-const authentications = require('../../Interfaces/http/api/authentications');
-const threads = require('../../Interfaces/http/api/threads');
-const comments = require('../../Interfaces/http/api/comments');
-const replies = require('../../Interfaces/http/api/replies');
-const likes = require('../../Interfaces/http/api/likes');
+const BaseRepository = require('../../../Core/BaseRepository');
 
-const createServer = async (container) => {
-    const server = Hapi.server({
-        host: process.env.HOST,
-        port: process.env.PORT,
-    });
+class LikeRepositoryPostgres extends BaseRepository {
+  constructor(pool, idGenerator) {
+    super('likes', pool);
+    this.idGenerator = idGenerator;
+  }
 
-    // registrasi plugin eksternal
-    await server.register([
-        {
-            plugin: Jwt,
-        },
-    ]);
+  async checkIfUserHasLikedComment({ commentId, userId }) {
+    const query = {
+      text: 'SELECT id FROM likes WHERE comment_id = $1 AND user_id = $2',
+      values: [commentId, userId],
+    };
 
-    // mendefinisikan strategy autentikasi jwt
-    server.auth.strategy('forum_api_jwt', 'jwt', {
-        keys: process.env.ACCESS_TOKEN_KEY,
-        verify: {
-            aud: false,
-            iss: false,
-            sub: false,
-            maxAgeSec: process.env.ACCESS_TOKEN_AGE,
-        },
-        validate: (artifacts) => ({
-            isValid: true,
-            credentials: {
-                id: artifacts.decoded.payload.id,
-                username: artifacts.decoded.payload.username,
-            },
-        }),
-    });
+    const result = await this.pool.query(query);
+    return result.rows.length > 0;
+  }
 
-    await server.register([
-        {
-            plugin: users,
-            options: { container },
-        },
-        {
-            plugin: authentications,
-            options: { container },
-        },
-        {
-            plugin: threads,
-            options: { container },
-        },
-        {
-            plugin: comments,
-            options: { container },
-        },
-        {
-            plugin: replies,
-            options: { container },
-        },
-        {
-            plugin: likes,
-            options: { container },
-        },
-    ]);
+  async likeComment({ commentId, userId }) {
+    const id = `like-${this.idGenerator()}`;
+    const date = new Date().toISOString();
 
-    server.ext('onPreResponse', (request, h) => {
-        // mendapatkan konteks response dari request
-        const { response } = request;
+    const query = {
+      text: 'INSERT INTO likes(id, comment_id, user_id, date) VALUES($1, $2, $3, $4)',
+      values: [id, commentId, userId, date],
+    };
 
-        if (response instanceof Error) {
-            // bila response tersebut error, tangani sesuai kebutuhan
-            const translatedError = DomainErrorTranslator.translate(response);
+    await this.pool.query(query);
+  }
 
-            // penanganan client error secara internal.
-            if (translatedError instanceof ClientError) {
-                const newResponse = h.response({
-                    status: 'fail',
-                    message: translatedError.message,
-                });
-                newResponse.code(translatedError.statusCode);
-                return newResponse;
-            }
+  async unlikeComment({ commentId, userId }) {
+    const query = {
+      text: 'DELETE FROM likes WHERE comment_id = $1 AND user_id = $2',
+      values: [commentId, userId],
+    };
 
-            // mempertahankan penanganan client error oleh hapi secara native, seperti 404, etc.
-            if (!translatedError.isServer) {
-                return h.continue;
-            }
+    await this.pool.query(query);
+  }
 
-            // penanganan server error sesuai kebutuhan
-            const newResponse = h.response({
-                status: 'error',
-                message: 'terjadi kegagalan pada server kami',
-            });
-            newResponse.code(500);
-            return newResponse;
-        }
+  async countCommentLikes(commentId) {
+    const query = {
+      text: 'SELECT COUNT(*) as count FROM likes WHERE comment_id = $1',
+      values: [commentId],
+    };
 
-        // jika bukan error, lanjutkan dengan response sebelumnya (tanpa terintervensi)
-        return h.continue;
-    });
+    const result = await this.pool.query(query);
+    return parseInt(result.rows[0].count, 10);
+  }
+}
 
-    return server;
-};
-
-module.exports = createServer;
+module.exports = LikeRepositoryPostgres;
