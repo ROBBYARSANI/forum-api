@@ -3,6 +3,7 @@ require('./Commons/setupEnv');
 const createServer = require('./Infrastructures/http/createServer');
 const container = require('./Infrastructures/container');
 
+// Application entry point
 (async () => {
   const server = await createServer(container);
   await server.start();
