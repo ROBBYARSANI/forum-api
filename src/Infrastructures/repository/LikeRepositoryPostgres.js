@@ -1,4 +1,4 @@
-const BaseRepository = require('../../../Core/BaseRepository');
+const BaseRepository = require('../../Core/BaseRepository');
 
 class LikeRepositoryPostgres extends BaseRepository {
   constructor(pool, idGenerator) {
