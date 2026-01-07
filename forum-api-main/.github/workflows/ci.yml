@@ -1,0 +1,62 @@
+    name: Continuous Integration
+
+    on:
+      pull_request:
+        branches:
+          - main
+
+    jobs:
+      test:
+        runs-on: ubuntu-latest
+
+        services:
+          postgres:
+            image: postgres:13
+            env:
+              POSTGRES_PASSWORD: postgres
+            options: >-
+              --health-cmd pg_isready
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
+
+        strategy:
+          matrix:
+            node-version: [14.x]
+
+        steps:
+        - uses: actions/checkout@v2
+        - name: Use Node.js ${{ matrix.node-version }}
+          uses: actions/setup-node@v2
+          with:
+            node-version: ${{ matrix.node-version }}
+        - name: npm install migrate and test
+          run: |
+            npm install
+            npm run migrate up
+            npm run test
+          env:
+            CI: true
+            PGHOST_TEST: localhost
+            PGUSER_TEST: postgres
+            PGDATABASE_TEST: postgres
+            PGPASSWORD_TEST: postgres
+            PGPORT_TEST: 5432
+            PGHOST: localhost
+            PGUSER: postgres
+            PGDATABASE: postgres
+            PGPASSWORD: postgres
+            PGPORT: 5432
+            ACCESS_TOKEN_KEY: ${{ secrets.ACCESS_TOKEN_KEY }}
+            REFRESH_TOKEN_KEY: ${{ secrets.REFRESH_TOKEN_KEY }}
+            ACCESS_TOKEN_AGE: ${{ secrets.ACCESS_TOKEN_AGE }}
+
+      fail-scenario:
+        runs-on: ubuntu-latest
+
+        steps:
+        - uses: actions/checkout@v2
+        - name: Fail intentionally
+          run: |
+            echo "This job is designed to fail for CI requirement demonstration"
+            exit 1
