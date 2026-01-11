@@ -1,4 +1,4 @@
-const pool = require('../../../Infrastructures/database/postgres/pool');
+const pool = require('../../../../Infrastructures/database/postgres/pool');
 
 class HealthHandler {
   constructor() {
