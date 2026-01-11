@@ -13,7 +13,7 @@ RUN npm ci --omit=dev
 # Copy all source code from forum-api-main
 COPY forum-api-main/ .
 
-# Expose port
+# Expose port (Railway will provide PORT environment variable)
 EXPOSE 8080
 
 # Start application
