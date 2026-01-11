@@ -9,6 +9,7 @@ const comments = require('../../Interfaces/http/api/comments');
 const replies = require('../../Interfaces/http/api/replies');
 const likes = require('../../Interfaces/http/api/likes');
 const health = require('../../Interfaces/http/api/health');
+const status = require('../../Interfaces/http/api/status');
 
 const createServer = async (container) => {
   const server = Hapi.server({
@@ -65,6 +66,10 @@ const createServer = async (container) => {
     },
     {
       plugin: health,
+      options: { container },
+    },
+    {
+      plugin: status,
       options: { container },
     },
   ]);
