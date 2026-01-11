@@ -10,8 +10,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci --omit=dev
 
-# Copy all source code from forum-api-main
-COPY forum-api-main/ .
+# Copy all source code from forum-api-main directory into /app
+COPY forum-api-main/src ./src
+COPY forum-api-main/migrations ./migrations
 
 # Expose port (Railway will provide PORT environment variable)
 EXPOSE 8080
