@@ -1,9 +1,18 @@
 {
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "buildCommand": "npm install"
   },
   "deploy": {
     "startCommand": "npm start",
-    "healthcheckPath": "/health"
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production"
+      }
+    }
   }
 }
