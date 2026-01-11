@@ -9,6 +9,25 @@ const testConfig = {
   database: process.env.PGDATABASE_TEST,
 };
 
-const pool = process.env.NODE_ENV === 'test' ? new Pool(testConfig) : new Pool();
+let pool;
+
+if (process.env.NODE_ENV === 'test') {
+  pool = new Pool(testConfig);
+} else if (process.env.DATABASE_URL) {
+  // Railway uses DATABASE_URL
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  });
+} else {
+  // Fallback to individual environment variables
+  pool = new Pool({
+    host: process.env.PGHOST || 'localhost',
+    port: process.env.PGPORT || 5432,
+    user: process.env.PGUSER || 'developer',
+    password: process.env.PGPASSWORD || 'myfirst',
+    database: process.env.PGDATABASE || 'forumapi',
+  });
+}
 
 module.exports = pool;
