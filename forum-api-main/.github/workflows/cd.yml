@@ -1,0 +1,29 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Railway CLI
+      run: |
+        curl -fsSL https://railway.app/install.sh | sh
+        export PATH="$HOME/.railway/bin:$PATH"
+        railway --version
+
+    - name: Deploy to Railway
+      run: |
+        export PATH="$HOME/.railway/bin:$PATH"
+        echo "Starting Railway deployment..."
+        railway login --token ${{ secrets.RAILWAY_TOKEN }}
+        railway deploy --service forum-api
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
