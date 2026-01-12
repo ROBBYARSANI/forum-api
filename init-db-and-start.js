@@ -57,7 +57,9 @@ async function initializeDatabase() {
       const initSqlPath = path.join(__dirname, 'init-db.sql');
       const initSql = fs.readFileSync(initSqlPath, 'utf-8');
       
+      console.log('[DB_INIT] Executing initialization SQL...');
       await client.query(initSql);
+      console.log('[DB_INIT] SQL executed successfully');
       
       console.log('[DB_INIT] Database initialized successfully');
     } finally {
@@ -65,6 +67,7 @@ async function initializeDatabase() {
     }
   } catch (err) {
     console.error('[DB_INIT] Error initializing database:', err.message);
+    console.error('[DB_INIT] Error details:', err);
     // Don't fail startup, database might already be initialized
   } finally {
     await pool.end();
