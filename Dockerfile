@@ -13,6 +13,7 @@ RUN npm ci --omit=dev
 # Copy all source code from root
 COPY src ./src
 COPY migrations ./migrations
+COPY migrate-and-start.js .
 
 # Expose port (Railway will provide PORT environment variable)
 EXPOSE 8080
