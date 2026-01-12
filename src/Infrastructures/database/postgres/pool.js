@@ -16,20 +16,28 @@ if (process.env.NODE_ENV === 'test') {
 } else if (process.env.DATABASE_URL) {
   // Railway uses DATABASE_URL - handle incomplete connection strings
   const dbUrl = process.env.DATABASE_URL;
+  console.log('DATABASE_URL:', dbUrl); // Debug logging
 
   // If DATABASE_URL is incomplete (missing username), construct proper connection
   if (dbUrl.startsWith('postgresql://:') || dbUrl.includes('postgresql://@/')) {
+    // Extract password from DATABASE_URL format: postgresql://:password@host:port/
+    const passwordMatch = dbUrl.match(/postgresql:\/\/:([^@]+)@/);
+    const password = passwordMatch ? passwordMatch[1] : 'password';
+
+    console.log('Using Railway internal config with extracted password'); // Debug logging
+
     // Use Railway internal defaults
     pool = new Pool({
       host: 'postgres.railway.internal',
       port: 5432,
-      user: 'postgres', // Railway default
-      password: dbUrl.split(':')[2]?.split('@')[0] || 'password', // Extract password
+      user: 'postgres', // Railway default user
+      password: password, // Extracted password
       database: 'railway', // Railway default database
       ssl: { rejectUnauthorized: false },
     });
   } else {
     // Use standard DATABASE_URL parsing
+    console.log('Using standard DATABASE_URL parsing'); // Debug logging
     pool = new Pool({
       connectionString: dbUrl,
       ssl: { rejectUnauthorized: false },
