@@ -79,6 +79,14 @@ const createServer = async (container) => {
     const { response } = request;
 
     if (response instanceof Error) {
+      // Log error untuk debugging
+      console.error('Server error:', {
+        message: response.message,
+        stack: response.stack,
+        path: request.path,
+        method: request.method,
+      });
+
       // bila response tersebut error, tangani sesuai kebutuhan
       const translatedError = DomainErrorTranslator.translate(response);
 
@@ -98,6 +106,13 @@ const createServer = async (container) => {
       }
 
       // penanganan server error sesuai kebutuhan
+      console.error('[SERVER ERROR]', {
+        message: translatedError.message,
+        stack: translatedError.stack,
+        path: request.path,
+        method: request.method,
+      });
+
       const newResponse = h.response({
         status: 'error',
         message: 'terjadi kegagalan pada server kami',
