@@ -12,12 +12,12 @@ const path = require('path');
 
 console.log('[MIGRATION] Starting database migrations...');
 
-const migrateProcess = spawn('node-pg-migrate', ['up'], {
+// Use npm run migrate instead of direct node-pg-migrate command
+// This ensures it works with both dev and prod dependencies
+const migrateProcess = spawn('npm', ['run', 'migrate', 'up'], {
   stdio: 'inherit',
   env: {
     ...process.env,
-    // Use standard DATABASE_URL if available (Railway)
-    // or fall back to test config for local dev
   },
 });
 

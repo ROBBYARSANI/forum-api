@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files from root directory
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --omit=dev
+# Install dependencies (including dev for migrations)
+RUN npm ci
 
 # Copy all source code from root
 COPY src ./src
