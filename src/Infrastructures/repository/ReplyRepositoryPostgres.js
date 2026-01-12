@@ -52,7 +52,7 @@ class ReplyRepositoryPostgres extends ReplyRepository {
 
     const query = {
       text: 'INSERT INTO replies VALUES($1, $2, $3, $4, $5) RETURNING id, content, owner',
-      values: [id, content, date, commentId, userId],
+      values: [id, content, userId, commentId, date],
     };
 
     const result = await this._pool.query(query);

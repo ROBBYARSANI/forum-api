@@ -52,7 +52,7 @@ class CommentRepositoryPostgres extends CommentRepository {
 
     const query = {
       text: 'INSERT INTO comments VALUES($1, $2, $3, $4, $5) RETURNING id, content, owner',
-      values: [id, content, date, threadId, userId],
+      values: [id, content, userId, threadId, date],
     };
 
     const result = await this._pool.query(query);
