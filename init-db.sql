@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Create authentications table
 CREATE TABLE IF NOT EXISTS authentications (
-  id VARCHAR(50) PRIMARY KEY,
-  token TEXT NOT NULL
+  id SERIAL PRIMARY KEY,
+  token TEXT NOT NULL UNIQUE
 );
 
 -- Create threads table
