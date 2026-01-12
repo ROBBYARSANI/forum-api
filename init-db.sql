@@ -1,3 +1,11 @@
+-- Drop existing tables if they exist (for clean reset)
+DROP TABLE IF EXISTS user_comment_likes;
+DROP TABLE IF EXISTS replies;
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS threads;
+DROP TABLE IF EXISTS authentications;
+DROP TABLE IF EXISTS users;
+
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(50) PRIMARY KEY,
