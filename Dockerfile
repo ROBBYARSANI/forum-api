@@ -7,13 +7,12 @@ WORKDIR /app
 # Copy package files from root directory
 COPY package*.json ./
 
-# Install dependencies (including dev for migrations)
+# Install all dependencies (including dev for migrations)
 RUN npm ci
 
 # Copy all source code from root
 COPY src ./src
 COPY migrations ./migrations
-COPY migrate-and-start.js .
 
 # Expose port (Railway will provide PORT environment variable)
 EXPOSE 8080
@@ -27,5 +26,5 @@ ENV PORT=8080 \
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Start application
-CMD ["npm", "start"]
+# Start application directly
+CMD ["node", "src/app.js"]
