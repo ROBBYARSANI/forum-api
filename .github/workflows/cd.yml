@@ -22,24 +22,32 @@ jobs:
     - name: 📥 Install Dependencies
       run: npm ci
     
-    - name: 🏗️ Build Docker Image
+    - name: 🏗️ Build Docker Image (Verification)
       run: docker build -t forum-api:${{ github.sha }} .
     
-    - name: 🚀 Deploy to Railway
+    - name: 📢 Deployment Notice
       run: |
-        echo "📋 Installing Railway CLI..."
-        npm install -g @railway/cli
-        
-        echo "🔐 Authenticating with Railway..."
-        export RAILWAY_TOKEN="${{ secrets.RAILWAY_TOKEN }}"
-        
-        echo "📤 Deploying to Railway..."
-        railway deploy --force
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        echo "🚀 Deployment Initiated"
+        echo "========================"
+        echo "✅ Code validated and ready for deployment"
+        echo "✅ Docker image builds successfully"
+        echo ""
+        echo "📋 Railway Auto-Deploy will:"
+        echo "  1. Detect this push to master branch"
+        echo "  2. Pull latest code from GitHub"
+        echo "  3. Build Docker image automatically"
+        echo "  4. Deploy to Railway service"
+        echo "  5. Database will be initialized on startup"
+        echo ""
+        echo "⏳ Estimated deployment time: 2-3 minutes"
+        echo ""
+        echo "📊 Monitor at: https://railway.app/dashboard"
+        echo "🔍 Check health: https://forum-api-production-5ea8.up.railway.app/health"
     
-    - name: ⏳ Wait for Deployment
-      run: sleep 30
+    - name: ⏳ Wait for Railway Deployment
+      run: |
+        echo "Waiting for Railway auto-deploy to complete..."
+        sleep 45
     
     - name: 🏥 Health Check
       run: |
@@ -73,6 +81,6 @@ jobs:
     - name: ❌ Deployment Failed Notification
       if: failure()
       run: |
-        echo "⚠️ Deployment failed!"
+        echo "⚠️ Deployment verification failed!"
         echo "🔗 Check Railway logs: https://railway.app/dashboard"
         exit 1
