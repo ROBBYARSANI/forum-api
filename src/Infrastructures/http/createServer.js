@@ -2,6 +2,7 @@ const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
 const ClientError = require('../../Commons/exceptions/ClientError');
 const DomainErrorTranslator = require('../../Commons/exceptions/DomainErrorTranslator');
+const RateLimiter = require('./RateLimiter');
 const users = require('../../Interfaces/http/api/users');
 const authentications = require('../../Interfaces/http/api/authentications');
 const threads = require('../../Interfaces/http/api/threads');
@@ -16,6 +17,9 @@ const createServer = async (container) => {
     host: process.env.HOST || '0.0.0.0',
     port: process.env.PORT || 8080,
   });
+
+  // Initialize rate limiter
+  const rateLimiter = new RateLimiter();
 
   await server.register([
     {
@@ -38,6 +42,9 @@ const createServer = async (container) => {
       },
     }),
   });
+
+  // Register rate limiter extension for /threads endpoints
+  server.ext('onRequest', rateLimiter.createHapiHandler());
 
   await server.register([
     {
