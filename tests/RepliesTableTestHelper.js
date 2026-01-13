@@ -11,8 +11,8 @@ const RepliesTableTestHelper = {
     isDelete = false,
   }) {
     const query = {
-      text: 'INSERT INTO replies VALUES($1, $2, $3, $4, $5, $6)',
-      values: [id, content, date, comment, owner, isDelete],
+      text: 'INSERT INTO replies (id, content, owner, comment, date, is_delete) VALUES($1, $2, $3, $4, $5, $6)',
+      values: [id, content, owner, comment, date, isDelete],
     };
 
     await pool.query(query);
