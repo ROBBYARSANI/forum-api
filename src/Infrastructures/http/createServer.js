@@ -12,7 +12,6 @@ const likes = require('../../Interfaces/http/api/likes');
 const health = require('../../Interfaces/http/api/health');
 const status = require('../../Interfaces/http/api/status');
 const serverInfo = require('../../Interfaces/http/api/serverInfo/routes');
-const goodbye = require('../../Interfaces/http/api/goodbye/routes');
 
 const createServer = async (container) => {
   const server = Hapi.server({
@@ -85,9 +84,6 @@ const createServer = async (container) => {
 
   // Register server info routes (static, no container needed)
   serverInfo(server);
-
-  // Register goodbye routes (static, no container needed)
-  goodbye(server);
 
   server.ext('onPreResponse', (request, h) => {
     // mendapatkan konteks response dari request

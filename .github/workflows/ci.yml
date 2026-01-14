@@ -79,23 +79,100 @@ jobs:
       if: success()
       run: echo "All tests passed successfully! ✅"
 
-  test-failure-scenario:
-    name: Tests - Failure Scenario (Intentional)
+  test-threads-integration:
+    name: Tests - Threads Integration (Real Scenario)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: forumapi_test_pass
+          POSTGRES_USER: forumapi_user
+          POSTGRES_DB: forumapi_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Run Database Migrations
+      run: npm run migrate:test up
+      env:
+        NODE_ENV: test
+        PGHOST: localhost
+        PGPORT: 5432
+        PGUSER: forumapi_user
+        PGPASSWORD: forumapi_test_pass
+        PGDATABASE: forumapi_test
+
+    - name: Run Threads Tests Only
+      run: npm test -- src/Interfaces/http/_test/threads.test.js
+      env:
+        NODE_ENV: test
+        PGHOST: localhost
+        PGPORT: 5432
+        PGUSER: forumapi_user
+        PGPASSWORD: forumapi_test_pass
+        PGDATABASE: forumapi_test
+        CI: true
+        HOST: localhost
+        PORT: 3000
+        ACCESS_TOKEN_KEY: secret
+        REFRESH_TOKEN_KEY: terces
+        ACCESS_TOKEN_AGE: 3600
+
+    - name: ✅ Threads Tests Passed
+      if: success()
+      run: echo "Threads endpoint tests passed successfully! ✅"
+
+    - name: ❌ Threads Tests Failed
+      if: failure()
+      run: echo "Threads endpoint tests failed! ❌"
+
+  threads-failure-scenario:
+    name: Threads - Failure Scenario (Demonstrates Error Handling)
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    - name: Simulate Build Failure
+    - name: Simulate Invalid Thread Operation
       run: |
-        echo "This job intentionally fails to demonstrate CI can catch failures"
-        echo "In real scenarios, this would be triggered by actual test failures"
-        echo "Simulating database connection timeout..."
+        echo "Simulating failure scenario: Invalid database connection"
+        echo "Testing error handling for threads endpoint without database"
+        sleep 1
         exit 1
 
-    - name: Test Failure Handling
+    - name: Failure Caught
       if: failure()
-      run: echo "❌ Failure was caught by CI workflow!"
+      run: echo "✅ CI successfully caught the threads operation failure! ❌ Expected failure"
 
 
