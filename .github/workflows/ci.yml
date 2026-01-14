@@ -6,14 +6,17 @@ on:
       - master
 
 jobs:
-  test:
+  test-success:
+    name: Tests - Success Scenario
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:13
         env:
-          POSTGRES_PASSWORD: myfirst
-          POSTGRES_USER: developer
+          POSTGRES_PASSWORD: forumapi_test_pass
+          POSTGRES_USER: forumapi_user
+          POSTGRES_DB: forumapi_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -27,49 +30,72 @@ jobs:
         node-version: [18.x]
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: npm ci
-      working-directory: ./forum-api-main
 
-    - name: Create test database
+    - name: Wait for PostgreSQL
       run: |
-        PGPASSWORD=myfirst psql -h localhost -U developer -tc "CREATE DATABASE forumapi_test;" || true
-      env:
-        PGPASSWORD: myfirst
+        until pg_isready -h localhost -p 5432; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
 
-    - name: Run migrations
+    - name: Run Database Migrations
       run: npm run migrate:test up
-      working-directory: ./forum-api-main
       env:
-        PGHOST_TEST: 127.0.0.1
-        PGUSER_TEST: developer
-        PGDATABASE_TEST: forumapi_test
-        PGPASSWORD_TEST: myfirst
-        PGPORT_TEST: 5432
+        NODE_ENV: test
+        PGHOST: localhost
+        PGPORT: 5432
+        PGUSER: forumapi_user
+        PGPASSWORD: forumapi_test_pass
+        PGDATABASE: forumapi_test
 
-    - name: Run tests
+    - name: Run Tests
       run: npm test
-      working-directory: ./forum-api-main
       env:
-        PGHOST_TEST: 127.0.0.1
-        PGUSER_TEST: developer
-        PGDATABASE_TEST: forumapi_test
-        PGPASSWORD_TEST: myfirst
-        PGPORT_TEST: 5432
+        NODE_ENV: test
+        PGHOST: localhost
+        PGPORT: 5432
+        PGUSER: forumapi_user
+        PGPASSWORD: forumapi_test_pass
+        PGDATABASE: forumapi_test
+        CI: true
+        HOST: localhost
+        PORT: 3000
+        ACCESS_TOKEN_KEY: secret
+        REFRESH_TOKEN_KEY: terces
+        ACCESS_TOKEN_AGE: 3600
 
-  fail-scenario:
+    - name: ✅ Tests Passed
+      if: success()
+      run: echo "All tests passed successfully! ✅"
+
+  test-failure-scenario:
+    name: Tests - Failure Scenario (Intentional)
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Intentional fail for CI requirement
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Simulate Build Failure
       run: |
-        echo "This job intentionally fails to meet CI requirement (1 pass + 1 fail)"
-        echo "This demonstrates CI pipeline can handle both success and failure scenarios"
+        echo "This job intentionally fails to demonstrate CI can catch failures"
+        echo "In real scenarios, this would be triggered by actual test failures"
+        echo "Simulating database connection timeout..."
         exit 1
+
+    - name: Test Failure Handling
+      if: failure()
+      run: echo "❌ Failure was caught by CI workflow!"
+
+
