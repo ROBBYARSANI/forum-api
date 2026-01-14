@@ -32,13 +32,19 @@ jobs:
       env:
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       run: |
-        echo "Authenticating with Railway..."
-        export RAILWAY_TOKEN="${{ secrets.RAILWAY_TOKEN }}"
+        echo "Setting up Railway CLI..."
         
-        echo "Deploying application..."
-        railway up --detach
+        if [ -z "$RAILWAY_TOKEN" ]; then
+          echo "Error: RAILWAY_TOKEN secret not found!"
+          echo "Please add RAILWAY_TOKEN to GitHub Secrets"
+          exit 1
+        fi
         
-        echo "Deployment initiated. Verifying..."
+        echo "Deploying application to Railway..."
+        railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --service forum-api
+        railway up
+        
+        echo "Deployment completed!"
     
     - name: Wait for Deployment Health Check
       run: |
