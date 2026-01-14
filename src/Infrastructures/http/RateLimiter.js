@@ -73,6 +73,11 @@ class RateLimiter {
    */
   startCleanup() {
     this.cleanupTimer = setInterval(() => {
+      // Skip cleanup if already stopped (prevents logging after test completion)
+      if (!this.cleanupTimer) {
+        return;
+      }
+
       const now = Date.now();
       let cleaned = 0;
 
@@ -91,6 +96,12 @@ class RateLimiter {
         console.log(`[RateLimiter] Cleaned up ${cleaned} expired entries`);
       }
     }, this.cleanupInterval);
+
+    // Allow process to exit even if this interval is running
+    // This is useful for tests and graceful shutdowns
+    if (this.cleanupTimer.unref) {
+      this.cleanupTimer.unref();
+    }
   }
 
   /**
@@ -99,6 +110,7 @@ class RateLimiter {
   stop() {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
     }
   }
 

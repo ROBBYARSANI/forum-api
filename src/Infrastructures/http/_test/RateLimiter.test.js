@@ -15,7 +15,7 @@ describe('RateLimiter', () => {
     it('should allow requests within limit', () => {
       const ip = '192.168.1.1';
 
-      for (let i = 0; i < 10; i += 1) {
+      for (let i = 0; i < 90; i += 1) {
         const result = rateLimiter.check(ip);
         expect(result.allowed).toBe(true);
       }
@@ -24,12 +24,12 @@ describe('RateLimiter', () => {
     it('should reject requests exceeding limit', () => {
       const ip = '192.168.1.1';
 
-      // Make 10 allowed requests
-      for (let i = 0; i < 10; i += 1) {
+      // Make 90 allowed requests
+      for (let i = 0; i < 90; i += 1) {
         rateLimiter.check(ip);
       }
 
-      // 11th request should be rejected
+      // 91st request should be rejected
       const result = rateLimiter.check(ip);
       expect(result.allowed).toBe(false);
       expect(result.retryAfter).toBeDefined();
@@ -39,10 +39,10 @@ describe('RateLimiter', () => {
       const ip = '192.168.1.2';
 
       const result1 = rateLimiter.check(ip);
-      expect(result1.remaining).toBe(9);
+      expect(result1.remaining).toBe(89);
 
       const result2 = rateLimiter.check(ip);
-      expect(result2.remaining).toBe(8);
+      expect(result2.remaining).toBe(88);
     });
 
     it('should distinguish between different IPs', () => {
@@ -50,7 +50,7 @@ describe('RateLimiter', () => {
       const ip2 = '192.168.1.2';
 
       // Use up limit for ip1
-      for (let i = 0; i < 10; i += 1) {
+      for (let i = 0; i < 90; i += 1) {
         rateLimiter.check(ip1);
       }
 
@@ -162,7 +162,7 @@ describe('RateLimiter', () => {
       handler(request, h);
 
       expect(request.plugins.rateLimiter).toBeDefined();
-      expect(request.plugins.rateLimiter.limit).toBe(10);
+      expect(request.plugins.rateLimiter.limit).toBe(90);
       expect(request.plugins.rateLimiter.remaining).toBeDefined();
     });
   });

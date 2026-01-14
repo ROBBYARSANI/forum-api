@@ -8,7 +8,7 @@ const CommentLikesTableTestHelper = {
     owner = 'user-123',
   }) {
     const query = {
-      text: 'INSERT INTO user_comment_likes (id, comment, owner) VALUES ($1, $2, $3)',
+      text: 'INSERT INTO user_comment_likes (id, comment_id, user_id) VALUES ($1, $2, $3)',
       values: [id, commentId, owner],
     };
 
@@ -27,7 +27,7 @@ const CommentLikesTableTestHelper = {
 
   async findLikeByCommentIdAndUserId(commentId, owner) {
     const query = {
-      text: 'SELECT * FROM user_comment_likes WHERE comment = $1 AND owner = $2',
+      text: 'SELECT * FROM user_comment_likes WHERE comment_id = $1 AND user_id = $2',
       values: [commentId, owner],
     };
 
