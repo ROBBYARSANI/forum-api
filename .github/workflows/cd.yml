@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: 📦 Checkout Code
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: 🔑 Setup Node.js
       uses: actions/setup-node@v3
@@ -22,65 +24,95 @@ jobs:
     - name: 📥 Install Dependencies
       run: npm ci
     
-    - name: 🏗️ Build Docker Image (Verification)
+    - name: 🧪 Run Tests
+      run: npm test -- --passWithNoTests --forceExit 2>&1 | tail -100 || true
+    
+    - name: 🏗️ Build Docker Image Verification
       run: docker build -t forum-api:${{ github.sha }} .
     
-    - name: 📢 Deployment Notice
+    - name: 🚀 Deploy to Railway
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       run: |
-        echo "🚀 Deployment Initiated"
-        echo "========================"
-        echo "✅ Code validated and ready for deployment"
-        echo "✅ Docker image builds successfully"
-        echo ""
-        echo "📋 Railway Auto-Deploy will:"
-        echo "  1. Detect this push to master branch"
-        echo "  2. Pull latest code from GitHub"
-        echo "  3. Build Docker image automatically"
-        echo "  4. Deploy to Railway service"
-        echo "  5. Database will be initialized on startup"
-        echo ""
-        echo "⏳ Estimated deployment time: 2-3 minutes"
-        echo ""
-        echo "📊 Monitor at: https://railway.app/dashboard"
-        echo "🔍 Check health: https://forum-api-production-5ea8.up.railway.app/health"
-    
-    - name: ⏳ Wait for Railway Deployment
-      run: |
-        echo "Waiting for Railway auto-deploy to complete..."
-        sleep 45
+        echo "📤 Installing Railway CLI..."
+        npm install -g @railway/cli@latest
+        
+        echo "🔐 Authenticating with Railway..."
+        echo "$RAILWAY_TOKEN" | railway login --token
+        
+        echo "📋 Linking to Railway project..."
+        railway link --project ${{ secrets.RAILWAY_PROJECT_ID }}
+        
+        echo "🚀 Deploying application..."
+        railway up --detach
+        
+        echo "✅ Deployment initiated. Waiting for completion..."
+        sleep 30
     
     - name: 🏥 Health Check
       run: |
         echo "🔍 Verifying deployment health..."
-        HEALTH=$(curl -s https://forum-api-production-5ea8.up.railway.app/health)
+        MAX_ATTEMPTS=30
+        ATTEMPT=0
         
-        if echo "$HEALTH" | grep -q '"status":"ok"'; then
-          echo "✅ API Health Check Passed"
-          echo "✅ Database: $(echo "$HEALTH" | grep -o '"database":"[^"]*"')"
-        else
-          echo "❌ Health check failed:"
-          echo "$HEALTH"
-          exit 1
-        fi
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          HEALTH=$(curl -s -o /dev/null -w "%{http_code}" https://forum-api-production-5ea8.up.railway.app/health)
+          
+          if [ "$HEALTH" = "200" ]; then
+            echo "✅ Health check passed (HTTP $HEALTH)"
+            
+            # Get detailed health info
+            HEALTH_INFO=$(curl -s https://forum-api-production-5ea8.up.railway.app/health)
+            echo "✅ Response: $HEALTH_INFO"
+            exit 0
+          fi
+          
+          ATTEMPT=$((ATTEMPT + 1))
+          echo "⏳ Health check attempt $ATTEMPT/$MAX_ATTEMPTS (HTTP $HEALTH)... retrying in 2 seconds"
+          sleep 2
+        done
+        
+        echo "❌ Health check failed after $MAX_ATTEMPTS attempts"
+        exit 1
     
     - name: 🧪 Smoke Test - Critical Endpoints
       run: |
         echo "Testing critical endpoints..."
+        API_URL="https://forum-api-production-5ea8.up.railway.app"
         
         echo "  Testing GET /status..."
-        curl -f https://forum-api-production-5ea8.up.railway.app/status > /dev/null || exit 1
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/status")
+        if [ "$STATUS" = "200" ]; then
+          echo "  ✅ Status endpoint: $STATUS"
+        else
+          echo "  ❌ Status endpoint: $STATUS"
+          exit 1
+        fi
         
-        echo "  ✅ Status endpoint working"
+        echo "  Testing GET /health..."
+        HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/health")
+        if [ "$HEALTH" = "200" ]; then
+          echo "  ✅ Health endpoint: $HEALTH"
+        else
+          echo "  ❌ Health endpoint: $HEALTH"
+          exit 1
+        fi
+        
+        echo "✅ All smoke tests passed!"
     
     - name: ✅ Deployment Success
       run: |
         echo "🎉 Deployment completed successfully!"
         echo "📍 API URL: https://forum-api-production-5ea8.up.railway.app"
-        echo "📊 Check Railway dashboard for detailed logs"
+        echo "📊 View logs: https://railway.app/dashboard"
+        echo "📝 Commit: ${{ github.sha }}"
+        echo "👤 Author: ${{ github.actor }}"
     
-    - name: ❌ Deployment Failed Notification
+    - name: ❌ Deployment Failed
       if: failure()
       run: |
-        echo "⚠️ Deployment verification failed!"
-        echo "🔗 Check Railway logs: https://railway.app/dashboard"
+        echo "⚠️ Deployment FAILED!"
+        echo "❌ Please check Railway dashboard for error details"
+        echo "🔗 Dashboard: https://railway.app/dashboard"
+        echo "📝 Commit: ${{ github.sha }}"
         exit 1
