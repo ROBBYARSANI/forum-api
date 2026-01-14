@@ -75,13 +75,14 @@ jobs:
         REFRESH_TOKEN_KEY: terces
         ACCESS_TOKEN_AGE: 3600
 
-  fail-scenario:
-    runs-on: ubuntu-latest
-    continue-on-error: true
+    - name: ✅ Tests Passed
+      if: success()
+      run: echo "All tests passed successfully! ✅"
 
   test-failure-scenario:
     name: Tests - Failure Scenario (Intentional)
     runs-on: ubuntu-latest
+    continue-on-error: true
     
     steps:
     - name: Checkout Code
