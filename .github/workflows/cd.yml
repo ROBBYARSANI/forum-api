@@ -10,120 +10,87 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: 📦 Checkout Code
+    - name: Checkout Code
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     
-    - name: 🔑 Setup Node.js
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18.x'
         cache: 'npm'
     
-    - name: 📥 Install Dependencies
+    - name: Install Dependencies
       run: npm ci
     
-    - name: 🧪 Run Tests
-      run: npm test -- --passWithNoTests --forceExit 2>&1 | tail -100 || true
-    
-    - name: 🏗️ Build Docker Image Verification
+    - name: Build Docker Image (Verification)
       run: docker build -t forum-api:${{ github.sha }} .
     
-    - name: 🚀 Deploy to Railway
+    - name: Install Railway CLI
+      run: npm install -g @railway/cli@latest
+    
+    - name: Deploy to Railway
       env:
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       run: |
-        echo "📤 Installing Railway CLI..."
-        npm install -g @railway/cli@latest
-        
-        echo "🔐 Authenticating with Railway..."
+        echo "Authenticating with Railway..."
         export RAILWAY_TOKEN="${{ secrets.RAILWAY_TOKEN }}"
         
-        echo "🚀 Deploying application..."
+        echo "Deploying application..."
         railway deploy --force
+        
+        echo "Deployment initiated. Verifying..."
     
-    - name: 🏥 Health Check
+    - name: Wait for Deployment Health Check
       run: |
-        echo "🔍 Verifying deployment health..."
+        echo "Verifying deployment is healthy..."
         MAX_ATTEMPTS=60
         ATTEMPT=0
         API_URL="https://forum-api-production-5ea8.up.railway.app"
         
         while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-          echo "⏳ Attempt $((ATTEMPT + 1))/$MAX_ATTEMPTS..."
-          
           HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/health" 2>/dev/null || echo "000")
           
           if [ "$HEALTH" = "200" ]; then
-            echo "✅ Health check PASSED (HTTP $HEALTH)"
-            
-            # Get detailed health info
-            HEALTH_DETAIL=$(curl -s "$API_URL/health" 2>/dev/null || echo "N/A")
-            echo "Response: $HEALTH_DETAIL"
-            exit 0
+            echo "API is healthy (HTTP $HEALTH)"
+            break
           fi
           
           ATTEMPT=$((ATTEMPT + 1))
-          
-          if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
-            echo "❌ Health check failed (HTTP $HEALTH). Retrying in 5 seconds..."
-            sleep 5
+          if [ $((ATTEMPT % 12)) -eq 0 ]; then
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - Still waiting (last HTTP: $HEALTH)..."
           fi
+          sleep 5
         done
         
-        echo "❌ Health check FAILED after $MAX_ATTEMPTS attempts"
-        exit 1
-    
-    - name: 🧪 Smoke Test - Critical Endpoints
-      run: |
-        echo "🧪 Running smoke tests..."
-        API_URL="https://forum-api-production-5ea8.up.railway.app"
-        FAILED=0
-        
-        echo ""
-        echo "Testing critical endpoints..."
-        
-        echo "  📍 GET /status"
-        STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/status" 2>/dev/null || echo "000")
-        if [ "$STATUS" = "200" ]; then
-          echo "  ✅ Status endpoint: HTTP $STATUS"
-        else
-          echo "  ❌ Status endpoint: HTTP $STATUS (expected 200)"
-          FAILED=$((FAILED + 1))
-        fi
-        
-        echo "  📍 GET /health"
-        HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/health" 2>/dev/null || echo "000")
-        if [ "$HEALTH" = "200" ]; then
-          echo "  ✅ Health endpoint: HTTP $HEALTH"
-        else
-          echo "  ❌ Health endpoint: HTTP $HEALTH (expected 200)"
-          FAILED=$((FAILED + 1))
-        fi
-        
-        echo ""
-        if [ $FAILED -eq 0 ]; then
-          echo "✅ All smoke tests PASSED!"
-          exit 0
-        else
-          echo "❌ $FAILED smoke test(s) FAILED!"
+        if [ "$HEALTH" != "200" ]; then
+          echo "Deployment health check failed after $MAX_ATTEMPTS attempts"
           exit 1
         fi
+        
+        echo "Deployment health check passed!"
     
-    - name: ✅ Deployment Success
+    - name: Smoke Test - Critical Endpoints
       run: |
-        echo "🎉 Deployment completed successfully!"
-        echo "📍 API URL: https://forum-api-production-5ea8.up.railway.app"
-        echo "📊 View logs: https://railway.app/dashboard"
-        echo "📝 Commit: ${{ github.sha }}"
-        echo "👤 Author: ${{ github.actor }}"
+        echo "Running smoke tests..."
+        API_URL="https://forum-api-production-5ea8.up.railway.app"
+        
+        echo "Testing GET /health..."
+        curl -f "$API_URL/health" > /dev/null && echo "  /health endpoint working" || exit 1
+        
+        echo "Testing GET /status..."
+        curl -f "$API_URL/status" > /dev/null && echo "  /status endpoint working" || exit 1
+        
+        echo "All smoke tests passed!"
     
-    - name: ❌ Deployment Failed
+    - name: Deployment Success
+      run: |
+        echo "Deployment completed successfully!"
+        echo "API URL: https://forum-api-production-5ea8.up.railway.app"
+        echo "Check Railway dashboard: https://railway.app/dashboard"
+    
+    - name: Deployment Failed Notification
       if: failure()
       run: |
-        echo "⚠️ Deployment FAILED!"
-        echo "❌ Please check Railway dashboard for error details"
-        echo "🔗 Dashboard: https://railway.app/dashboard"
-        echo "📝 Commit: ${{ github.sha }}"
+        echo "Deployment verification failed!"
+        echo "Check Railway logs: https://railway.app/dashboard"
         exit 1
