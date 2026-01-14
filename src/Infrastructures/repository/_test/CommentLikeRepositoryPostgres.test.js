@@ -61,11 +61,9 @@ describe('CommentLikeRepositoryPostgres', () => {
         dummyComment.id,
         dummyUserId,
       );
-      expect(likes[0]).toStrictEqual({
-        id: 'like-123',
-        comment: 'comment-123',
-        owner: 'user-123',
-      });
+      expect(likes[0].id).toStrictEqual('like-123');
+      expect(likes[0].comment_id).toStrictEqual('comment-123');
+      expect(likes[0].user_id).toStrictEqual('user-123');
     });
   });
 
@@ -150,9 +148,9 @@ describe('CommentLikeRepositoryPostgres', () => {
       // Assert
       expect(threadCommentLikes).toHaveLength(2);
       expect(threadCommentLikes[0].id).toStrictEqual('like-1');
-      expect(threadCommentLikes[0].comment).toStrictEqual(dummyComment.id);
+      expect(threadCommentLikes[0].comment_id).toStrictEqual(dummyComment.id);
       expect(threadCommentLikes[1].id).toStrictEqual('like-2');
-      expect(threadCommentLikes[1].comment).toStrictEqual('other-comment');
+      expect(threadCommentLikes[1].comment_id).toStrictEqual('other-comment');
     });
   });
 

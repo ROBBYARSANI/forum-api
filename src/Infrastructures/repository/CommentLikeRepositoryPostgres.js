@@ -12,8 +12,8 @@ class CommentLikeRepositoryPostgres extends CommentLikeRepository {
     const { commentId, owner } = like;
 
     const query = {
-      text: 'INSERT INTO user_comment_likes (id, comment, owner) VALUES ($1, $2, $3)',
-      values: [id, commentId, owner],
+      text: 'INSERT INTO user_comment_likes (id, user_id, comment_id) VALUES ($1, $2, $3)',
+      values: [id, owner, commentId],
     };
 
     await this._pool.query(query);
@@ -22,7 +22,7 @@ class CommentLikeRepositoryPostgres extends CommentLikeRepository {
   async getLikesByThreadId(threadId) {
     const query = {
       text: `SELECT user_comment_likes.* FROM user_comment_likes 
-      LEFT JOIN comments ON comments.id = user_comment_likes.comment
+      LEFT JOIN comments ON comments.id = user_comment_likes.comment_id
       WHERE comments.thread = $1`,
       values: [threadId],
     };
@@ -36,7 +36,7 @@ class CommentLikeRepositoryPostgres extends CommentLikeRepository {
     const { commentId, owner } = like;
 
     const query = {
-      text: 'DELETE FROM user_comment_likes WHERE comment = $1 AND owner = $2',
+      text: 'DELETE FROM user_comment_likes WHERE comment_id = $1 AND user_id = $2',
       values: [commentId, owner],
     };
 
@@ -47,7 +47,7 @@ class CommentLikeRepositoryPostgres extends CommentLikeRepository {
     const { commentId, owner } = like;
 
     const query = {
-      text: 'SELECT 1 FROM user_comment_likes WHERE comment = $1 AND owner = $2',
+      text: 'SELECT 1 FROM user_comment_likes WHERE comment_id = $1 AND user_id = $2',
       values: [commentId, owner],
     };
 

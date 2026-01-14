@@ -51,8 +51,8 @@ class ReplyRepositoryPostgres extends ReplyRepository {
     const date = new Date().toISOString();
 
     const query = {
-      text: 'INSERT INTO replies VALUES($1, $2, $3, $4, $5) RETURNING id, content, owner',
-      values: [id, content, date, commentId, userId],
+      text: 'INSERT INTO replies (id, content, owner, comment, date) VALUES($1, $2, $3, $4, $5) RETURNING id, content, owner',
+      values: [id, content, userId, commentId, date],
     };
 
     const result = await this._pool.query(query);

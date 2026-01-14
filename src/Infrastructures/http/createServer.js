@@ -2,6 +2,7 @@ const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
 const ClientError = require('../../Commons/exceptions/ClientError');
 const DomainErrorTranslator = require('../../Commons/exceptions/DomainErrorTranslator');
+const RateLimiter = require('./RateLimiter');
 const users = require('../../Interfaces/http/api/users');
 const authentications = require('../../Interfaces/http/api/authentications');
 const threads = require('../../Interfaces/http/api/threads');
@@ -10,12 +11,16 @@ const replies = require('../../Interfaces/http/api/replies');
 const likes = require('../../Interfaces/http/api/likes');
 const health = require('../../Interfaces/http/api/health');
 const status = require('../../Interfaces/http/api/status');
+const serverInfo = require('../../Interfaces/http/api/serverInfo/routes');
 
 const createServer = async (container) => {
   const server = Hapi.server({
-    host: process.env.HOST,
-    port: process.env.PORT,
+    host: process.env.HOST || '0.0.0.0',
+    port: process.env.PORT || 8080,
   });
+
+  // Initialize rate limiter
+  const rateLimiter = new RateLimiter();
 
   await server.register([
     {
@@ -38,6 +43,9 @@ const createServer = async (container) => {
       },
     }),
   });
+
+  // Register rate limiter extension for /threads endpoints
+  server.ext('onRequest', rateLimiter.createHapiHandler());
 
   await server.register([
     {
@@ -74,11 +82,22 @@ const createServer = async (container) => {
     },
   ]);
 
+  // Register server info routes (static, no container needed)
+  serverInfo(server);
+
   server.ext('onPreResponse', (request, h) => {
     // mendapatkan konteks response dari request
     const { response } = request;
 
     if (response instanceof Error) {
+      // Log error untuk debugging
+      console.error('Server error:', {
+        message: response.message,
+        stack: response.stack,
+        path: request.path,
+        method: request.method,
+      });
+
       // bila response tersebut error, tangani sesuai kebutuhan
       const translatedError = DomainErrorTranslator.translate(response);
 
@@ -98,6 +117,13 @@ const createServer = async (container) => {
       }
 
       // penanganan server error sesuai kebutuhan
+      console.error('[SERVER ERROR]', {
+        message: translatedError.message,
+        stack: translatedError.stack,
+        path: request.path,
+        method: request.method,
+      });
+
       const newResponse = h.response({
         status: 'error',
         message: 'terjadi kegagalan pada server kami',

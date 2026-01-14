@@ -4,18 +4,29 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files from forum-api-main folder and root package-lock.json
-COPY forum-api-main/package*.json ./
-COPY package-lock.json ./
+# Copy package files from root directory
+COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --omit=dev
+# Install all dependencies (including dev for migrations)
+RUN npm ci
 
-# Copy all source code from forum-api-main
-COPY forum-api-main/ .
+# Copy all source code and initialization files from root
+COPY src ./src
+COPY migrations ./migrations
+COPY init-db.sql .
+COPY init-db-and-start.js .
 
-# Expose port
+# Expose port (Railway will provide PORT environment variable)
 EXPOSE 8080
 
-# Start application
+# Set default PORT env var for Railway
+ENV PORT=8080 \
+    HOST=0.0.0.0 \
+    NODE_ENV=production
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+
+# Start application with database initialization
 CMD ["npm", "start"]

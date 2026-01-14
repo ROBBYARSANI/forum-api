@@ -8,8 +8,8 @@ describe('HealthHandler', () => {
   });
 
   describe('getHealthHandler', () => {
-    it('should return health status', () => {
-      const result = healthHandler.getHealthHandler();
+    it('should return health status', async () => {
+      const result = await healthHandler.getHealthHandler();
 
       expect(result).toHaveProperty('status', 'ok');
       expect(result).toHaveProperty('message', 'Forum API is healthy');

@@ -4,12 +4,12 @@ exports.up = (pgm) => {
       type: 'VARCHAR(50)',
       primaryKey: true,
     },
-    comment: {
+    comment_id: {
       type: 'VARCHAR(50)',
       notNull: true,
       references: 'comments',
     },
-    owner: {
+    user_id: {
       type: 'VARCHAR(50)',
       notNull: true,
       references: 'users',
@@ -19,7 +19,7 @@ exports.up = (pgm) => {
   pgm.addConstraint(
     'user_comment_likes',
     'unique_comment_and_owner',
-    'UNIQUE(comment, owner)',
+    'UNIQUE(comment_id, user_id)',
   );
 };
 
