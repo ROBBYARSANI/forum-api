@@ -1,14 +1,14 @@
 /**
  * Rate Limiter for Hapi.js
  * Implements per-IP rate limiting for /threads and related endpoints
- * Requirement: Max 10 requests per minute for /threads endpoints
+ * Requirement: Max 90 requests per minute for /threads endpoints
  */
 
 class RateLimiter {
   constructor() {
     // Store request counts: { ip: { timestamp: count } }
     this.store = new Map();
-    this.maxRequests = 10;
+    this.maxRequests = 90; // 90 requests per minute as per requirement
     this.windowMs = 60 * 1000; // 1 minute
     this.cleanupInterval = 5 * 60 * 1000; // Clean up every 5 minutes
 
