@@ -22,47 +22,48 @@ jobs:
     - name: Install Dependencies
       run: npm ci
     
+    - name: Run Tests
+      run: npm test
+    
     - name: Build Docker Image (Verification)
       run: docker build -t forum-api:${{ github.sha }} .
-    
-    - name: Install Railway CLI
-      run: npm install -g @railway/cli@latest
     
     - name: Deploy to Railway
       env:
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       run: |
-        echo "Starting deployment process..."
+        echo "Authenticating with Railway..."
         
-        # Check if secrets are provided
-        if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_PROJECT_ID" ]; then
-          echo "⚠️  Warning: Railway secrets not fully configured"
-          echo "RAILWAY_TOKEN: $([ -z '$RAILWAY_TOKEN' ] && echo 'NOT SET' || echo 'SET')"
-          echo "RAILWAY_PROJECT_ID: $([ -z '$RAILWAY_PROJECT_ID' ] && echo 'NOT SET' || echo 'SET')"
-          echo ""
-          echo "📋 Setup Instructions:"
-          echo "1. Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
-          echo "2. Add new secrets:"
-          echo "   - RAILWAY_TOKEN: From railway.app dashboard"
-          echo "   - RAILWAY_PROJECT_ID: From railway project settings"
-          echo ""
-          echo "For now, skipping automated deployment."
-          echo "Please deploy manually or configure secrets."
-        else
-          echo "✅ Secrets configured. Proceeding with deployment..."
-          railway link --project "$RAILWAY_PROJECT_ID" --service forum-api
-          railway up
-          echo "✅ Deployment completed!"
+        # Check if RAILWAY_TOKEN is set
+        if [ -z "$RAILWAY_TOKEN" ]; then
+          echo "ℹ️  RAILWAY_TOKEN not configured. Skipping Railway deployment."
+          echo "📋 To enable automatic deployment:"
+          echo "   1. Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
+          echo "   2. Create secret: RAILWAY_TOKEN"
+          echo "   3. Push code again to trigger deployment"
+          exit 0
         fi
+        
+        echo "Installing Railway CLI..."
+        npm install -g @railway/cli@latest
+        
+        echo "Deploying application to Railway..."
+        railway up
+        
+        echo "✅ Deployment initiated. Verifying..."
     
     - name: Wait for Deployment Health Check
-      if: secrets.RAILWAY_TOKEN != ''
       run: |
         echo "Verifying deployment is healthy..."
         MAX_ATTEMPTS=60
         ATTEMPT=0
         API_URL="https://forum-api-production-5ea8.up.railway.app"
+        
+        # Skip if no token (means deployment was skipped)
+        if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+          echo "ℹ️  Skipping health check (deployment not enabled)"
+          exit 0
+        fi
         
         while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
           HEALTH=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL/health" 2>/dev/null || echo "000")
@@ -83,13 +84,18 @@ jobs:
           echo "⚠️  Health check timed out, but deployment may be proceeding"
         fi
         
-        echo "✅ Deployment health check completed!"
+        echo "✅ Health check completed!"
     
     - name: Smoke Test - Critical Endpoints
-      if: secrets.RAILWAY_TOKEN != ''
       run: |
         echo "Running smoke tests..."
         API_URL="https://forum-api-production-5ea8.up.railway.app"
+        
+        # Skip if no token (means deployment was skipped)
+        if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+          echo "ℹ️  Skipping smoke tests (deployment not enabled)"
+          exit 0
+        fi
         
         echo "Testing GET /health..."
         curl -f "$API_URL/health" > /dev/null && echo "  ✅ /health endpoint working" || echo "  ⚠️  /health endpoint not available yet"
@@ -97,21 +103,29 @@ jobs:
         echo "Testing GET /status..."
         curl -f "$API_URL/status" > /dev/null && echo "  ✅ /status endpoint working" || echo "  ⚠️  /status endpoint not available yet"
         
-        echo "All smoke tests completed!"
+        echo "✅ All smoke tests completed!"
     
-    - name: Deployment Status
+    - name: Deployment Success
+      if: success()
       run: |
         echo "=========================================="
-        echo "✅ Workflow execution completed!"
+        echo "✅ Deployment workflow completed!"
         echo "=========================================="
         echo ""
-        echo "If secrets are configured:"
-        echo "  🚀 Application deployed to Railway"
-        echo "  📍 URL: https://forum-api-production-5ea8.up.railway.app"
-        echo "  📊 Dashboard: https://railway.app/dashboard"
-        echo ""
-        echo "If secrets are NOT configured:"
-        echo "  ⚙️  Setup required (see workflow output above)"
-        echo "  📖 Guide: https://github.com/${{ github.repository }}"
-        echo ""
+        if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+          echo "ℹ️  Note: Railway deployment not configured"
+          echo "   To enable: Set RAILWAY_TOKEN secret in GitHub"
+        else
+          echo "✅ Application deployed to Railway"
+          echo "📍 URL: https://forum-api-production-5ea8.up.railway.app"
+          echo "📊 Dashboard: https://railway.app/dashboard"
+        fi
         echo "=========================================="
+    
+    - name: Deployment Failed Notification
+      if: failure()
+      run: |
+        echo "❌ Deployment workflow failed!"
+        echo "Check the logs above for details"
+        echo "Repository: https://github.com/${{ github.repository }}"
+        exit 1
