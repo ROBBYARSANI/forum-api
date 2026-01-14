@@ -36,7 +36,7 @@ jobs:
         export RAILWAY_TOKEN="${{ secrets.RAILWAY_TOKEN }}"
         
         echo "Deploying application..."
-        railway deploy --force
+        railway up --detach
         
         echo "Deployment initiated. Verifying..."
     
