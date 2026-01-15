@@ -47,6 +47,29 @@ const createServer = async (container) => {
   // Register rate limiter extension for /threads endpoints
   server.ext('onRequest', rateLimiter.createHapiHandler());
 
+  // Add rate limit headers to all /threads responses
+  server.ext('onPreResponse', (request, h) => {
+    const { response } = request;
+    
+    // Only add headers for /threads endpoints
+    if (request.path.startsWith('/threads') && request.plugins.rateLimiter) {
+      const { limit, remaining, reset } = request.plugins.rateLimiter;
+      
+      // Add headers to both successful and error responses
+      if (response.isBoom) {
+        response.output.headers['X-RateLimit-Limit'] = limit;
+        response.output.headers['X-RateLimit-Remaining'] = remaining;
+        response.output.headers['X-RateLimit-Reset'] = reset;
+      } else if (typeof response.header === 'function') {
+        response.header('X-RateLimit-Limit', limit);
+        response.header('X-RateLimit-Remaining', remaining);
+        response.header('X-RateLimit-Reset', reset);
+      }
+    }
+    
+    return h.continue;
+  });
+
   await server.register([
     {
       plugin: users,
