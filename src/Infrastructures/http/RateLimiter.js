@@ -30,26 +30,42 @@ class RateLimiter {
 
     const ipData = this.store.get(ip);
 
-    // Remove old requests outside the window
+    // Remove old requests outside the current window
     ipData.requests = ipData.requests.filter(
       (timestamp) => now - timestamp < this.windowMs,
     );
 
+    // Update window start if no requests in current window
+    if (ipData.requests.length === 0) {
+      ipData.window_start = now;
+    }
+
     const currentCount = ipData.requests.length;
     const allowed = currentCount < this.maxRequests;
 
+    // Calculate the oldest request time for reset calculation
+    const oldestRequest = ipData.requests.length > 0 ? ipData.requests[0] : now;
+    const resetTime = oldestRequest + this.windowMs;
+
     if (allowed) {
       ipData.requests.push(now);
+      const remaining = Math.max(0, this.maxRequests - currentCount - 1);
+      return {
+        allowed: true,
+        remaining,
+        resetTime,
+        retryAfter: null,
+      };
     }
 
-    const resetTime = ipData.window_start + this.windowMs;
-    const remaining = Math.max(0, this.maxRequests - currentCount - 1);
-
+    // Request not allowed - calculate retry after
+    const retryAfter = Math.ceil((resetTime - now) / 1000);
+    
     return {
-      allowed,
-      remaining,
+      allowed: false,
+      remaining: 0,
       resetTime,
-      retryAfter: allowed ? null : Math.ceil((resetTime - now) / 1000),
+      retryAfter: Math.max(1, retryAfter),
     };
   }
 
@@ -59,13 +75,34 @@ class RateLimiter {
    * @returns {string} IP address
    */
   getClientIp(request) {
+    // Railway proxy headers (try these first)
     const xForwarded = request.headers['x-forwarded-for'];
     const xRealIp = request.headers['x-real-ip'];
-    return (
-      (xForwarded && xForwarded.split(',')[0].trim())
+    const cfConnectingIp = request.headers['cf-connecting-ip']; // Cloudflare
+    const xClientIp = request.headers['x-client-ip'];
+    const trueClientIp = request.headers['true-client-ip'];
+    
+    // Try to get real client IP from various proxy headers
+    const ip = cfConnectingIp
+      || trueClientIp
+      || xClientIp
+      || (xForwarded && xForwarded.split(',')[0].trim())
       || xRealIp
-      || request.info.remoteAddress
-    );
+      || request.info.remoteAddress;
+    
+    // Debug logging (dapat dinonaktifkan di production)
+    if (process.env.DEBUG_RATE_LIMIT === 'true') {
+      // eslint-disable-next-line no-console
+      console.log('[RateLimiter] IP Detection:', {
+        finalIp: ip,
+        xForwarded,
+        xRealIp,
+        cfConnectingIp,
+        remoteAddress: request.info.remoteAddress,
+      });
+    }
+    
+    return ip;
   }
 
   /**
@@ -128,6 +165,12 @@ class RateLimiter {
       const ip = this.getClientIp(request);
       const result = this.check(ip);
 
+      // Debug logging untuk production troubleshooting
+      if (process.env.NODE_ENV === 'production' || process.env.DEBUG_RATE_LIMIT === 'true') {
+        // eslint-disable-next-line no-console
+        console.log(`[RateLimiter] ${request.method} ${request.path} - IP: ${ip} - Allowed: ${result.allowed} - Remaining: ${result.remaining}`);
+      }
+
       // Set rate limit headers
       request.plugins.rateLimiter = {
         limit: this.maxRequests,
@@ -137,7 +180,7 @@ class RateLimiter {
 
       if (!result.allowed) {
         // eslint-disable-next-line no-console
-        console.warn(`[RateLimiter] Rate limit exceeded for IP: ${ip}`);
+        console.warn(`[RateLimiter] Rate limit exceeded for IP: ${ip} on ${request.path}`);
         const response = h.response({
           status: 'fail',
           message: 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
@@ -147,9 +190,11 @@ class RateLimiter {
         response.header('X-RateLimit-Limit', this.maxRequests);
         response.header('X-RateLimit-Remaining', 0);
         response.header('X-RateLimit-Reset', Math.floor(result.resetTime / 1000));
-        return response;
+        return response.takeover();
       }
 
+      // Add rate limit headers to successful responses
+      // This will be visible in response
       return h.continue;
     };
   }
