@@ -157,8 +157,10 @@ class RateLimiter {
    */
   createHapiHandler() {
     return (request, h) => {
-      // Only rate limit /threads and its child routes
-      if (!request.path.startsWith('/threads')) {
+      // Only rate limit /threads and its child routes using strict regex
+      // Matches: /threads, /threads/, /threads/123, /threads/123/comments
+      // Does NOT match: /threadsx, /threadsomething
+      if (!/^\/threads(\/|$)/.test(request.path)) {
         return h.continue;
       }
 
@@ -183,7 +185,7 @@ class RateLimiter {
         console.warn(`[RateLimiter] Rate limit exceeded for IP: ${ip} on ${request.path}`);
         const response = h.response({
           status: 'fail',
-          message: 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
+          message: 'Too many requests, please try again later',
         });
         response.code(429); // Too Many Requests
         response.header('Retry-After', result.retryAfter);
