@@ -51,8 +51,8 @@ const createServer = async (container) => {
   server.ext('onPreResponse', (request, h) => {
     const { response } = request;
     
-    // Only add headers for /threads endpoints
-    if (request.path.startsWith('/threads') && request.plugins.rateLimiter) {
+    // Only add headers for /threads endpoints using strict regex
+    if (/^\/threads(\/|$)/.test(request.path) && request.plugins.rateLimiter) {
       const { limit, remaining, reset } = request.plugins.rateLimiter;
       
       // Add headers to both successful and error responses
