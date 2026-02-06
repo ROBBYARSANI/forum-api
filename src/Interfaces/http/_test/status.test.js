@@ -45,7 +45,7 @@ describe('StatusHandler', () => {
 
       const timestamp = new Date(result.timestamp);
       expect(timestamp).toBeInstanceOf(Date);
-      expect(isNaN(timestamp.getTime())).toBe(false);
+      expect(Number.isNaN(timestamp.getTime())).toBe(false);
     });
   });
 });

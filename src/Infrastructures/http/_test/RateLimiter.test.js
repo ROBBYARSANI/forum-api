@@ -139,6 +139,7 @@ describe('RateLimiter', () => {
 
       const h = {
         response: (data) => ({
+          data,
           code: jest.fn().mockReturnThis(),
           header: jest.fn().mockReturnThis(),
         }),

@@ -17,6 +17,7 @@ class HealthHandler {
         message: 'Forum API is healthy',
         database: 'connected',
         timestamp: new Date().toISOString(),
+        dbTimestamp: result.rows[0].now,
       };
     } catch (error) {
       console.error('Health check database error:', error.message);

@@ -28,7 +28,7 @@ if (process.env.NODE_ENV === 'test') {
       host: 'postgres.railway.internal',
       port: 5432,
       user: 'postgres', // Railway default user
-      password: password, // Extracted password
+      password, // Extracted password
       database: 'railway', // Railway default database
       ssl: { rejectUnauthorized: false },
     });

@@ -60,7 +60,7 @@ class RateLimiter {
 
     // Request not allowed - calculate retry after
     const retryAfter = Math.ceil((resetTime - now) / 1000);
-    
+
     return {
       allowed: false,
       remaining: 0,
@@ -81,7 +81,7 @@ class RateLimiter {
     const cfConnectingIp = request.headers['cf-connecting-ip']; // Cloudflare
     const xClientIp = request.headers['x-client-ip'];
     const trueClientIp = request.headers['true-client-ip'];
-    
+
     // Try to get real client IP from various proxy headers
     const ip = cfConnectingIp
       || trueClientIp
@@ -89,7 +89,7 @@ class RateLimiter {
       || (xForwarded && xForwarded.split(',')[0].trim())
       || xRealIp
       || request.info.remoteAddress;
-    
+
     // Debug logging (dapat dinonaktifkan di production)
     if (process.env.DEBUG_RATE_LIMIT === 'true') {
       // eslint-disable-next-line no-console
@@ -101,7 +101,7 @@ class RateLimiter {
         remoteAddress: request.info.remoteAddress,
       });
     }
-    
+
     return ip;
   }
 

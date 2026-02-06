@@ -50,11 +50,11 @@ const createServer = async (container) => {
   // Add rate limit headers to all /threads responses
   server.ext('onPreResponse', (request, h) => {
     const { response } = request;
-    
+
     // Only add headers for /threads endpoints using strict regex
     if (/^\/threads(\/|$)/.test(request.path) && request.plugins.rateLimiter) {
       const { limit, remaining, reset } = request.plugins.rateLimiter;
-      
+
       // Add headers to both successful and error responses
       if (response.isBoom) {
         response.output.headers['X-RateLimit-Limit'] = limit;
@@ -66,7 +66,7 @@ const createServer = async (container) => {
         response.header('X-RateLimit-Reset', reset);
       }
     }
-    
+
     return h.continue;
   });
 

@@ -4,14 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node init-db-and-start.js",
+    "start": "node src/app.js",
     "start:dev": "nodemon src/app.js",
-    "test": "jest --setupFiles dotenv/config -i --forceExit",
-    "test:watch:change": "jest --watch --setupFiles dotenv/config -i",
-    "test:watch": "jest --watchAll --coverage --setupFiles dotenv/config -i",
+    "test": "jest --coverage --setupFiles ./src/Commons/setupEnv.js -i",
+    "test:watch:change": "jest --watch --setupFiles ./src/Commons/setupEnv.js -i",
+    "test:watch": "jest --watchAll --coverage --setupFiles ./src/Commons/setupEnv.js -i",
     "migrate": "node-pg-migrate",
-    "migrate:test": "node-pg-migrate -f config/database/test.json",
-    "lint": "eslint ./src"
+    "migrate:test": "node-pg-migrate --env-path .env.test",
+    "lint": "npx eslint .",
+    "lint:fix": "npx eslint . --fix"
   },
   "keywords": [],
   "author": "",
